@@ -157,23 +157,29 @@ class Server:
                     client.send(returnMsg.encode())
             elif 'ATU' == afterLoginMsg.decode():
                 print('{} issued ATU command'.format(username))
-                print('Return active user list')
+                print('Return active user list:')
                 if len(self.login_log) == 1 and username in self.login_log:
-                    print('No other active users')
+                    print('\tNo other active users')
                     client.send('No other active users'.encode())
                 else:
                     returnMsg = ''
                     for key in self.login_log:
                         if key != username:
-                            returnMsg += '\n{} active since {}'.format(
+                            returnMsg += '{}, {}, {}, active since {}\n'.format(
                                 key,
-                                self.login_log[key][0]
+                                self.login_log[key][1],     # userlog - ip address
+                                self.login_log[key][2],     # userlog - udp port number
+                                self.login_log[key][0]      # userlog - login time
                             )
-                            print('{} active since {}'.format(
+                            print('\t{}, {}, {}, active since {}'.format(
                                 key,
-                                self.login_log[key][0]
+                                self.login_log[key][1],  # userlog - ip address
+                                self.login_log[key][2],  # userlog - udp port number
+                                self.login_log[key][0]  # userlog - login time
                             ))
                     client.send(returnMsg.encode())
+            elif 'UDP ' in afterLoginMsg.decode():
+                return
             else:
                 client.sent('Error. Invalid command!'.encode())
 
@@ -253,11 +259,11 @@ class Server:
         with open('userlog.txt', 'w+') as logfile:
             for (idx, name) in enumerate(self.login_log):
                 logline = '{}; {}; {}; {}; {}\n'.format(
-                    idx + 1,
-                    self.login_log[name][0],
-                    name,
-                    self.login_log[name][1],
-                    self.login_log[name][2],
+                    idx + 1,                    # userlog - sequence number
+                    self.login_log[name][0],    # userlog - login time
+                    name,                       # userlog - username
+                    self.login_log[name][1],    # userlog - ip address
+                    self.login_log[name][2],    # userlog - udp port number
                 )
                 logfile.write(logline)
 

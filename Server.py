@@ -24,7 +24,6 @@ class Server:
             # self.login = False
 
     def tcpConnect(self, client, address, failed_num):
-        self.updateUserLog()
         login = False
         cnt = 0
         while not login:
@@ -41,8 +40,8 @@ class Server:
                 print('{} Login'.format(username))
                 client.send('0'.encode())  # 0 stands for login successfully
                 login = True
-                self.login_log[username] = time.strftime('%d %b %Y %H:%M:%S') + ',' + udp_port
-                self.updateUserLog(address)
+                self.login_log[username] = [time.strftime('%d %b %Y %H:%M:%S'), address[0], udp_port]
+                self.updateUserLog()
             elif cnt < failed_num:
                 print(username)
                 client.send('1'.encode())  # 1 stands for login unsuccessfully but has not been block
@@ -54,7 +53,11 @@ class Server:
         while login:
             afterLoginMsg = client.recv(1024)
             if afterLoginMsg.decode() == 'OUT':
+                self.login_log.pop(username)
+                self.updateUserLog()
                 login = False
+                print('{} Logout'.format(username))
+                client.send('Bye! {}'.format(username).encode())
                 client.close()
             elif 'MSG ' in afterLoginMsg.decode():
                 # TODO: empty message and validation
@@ -153,7 +156,24 @@ class Server:
                             ))
                     client.send(returnMsg.encode())
             elif 'ATU' == afterLoginMsg.decode():
-                return
+                print('{} issued ATU command'.format(username))
+                print('Return active user list')
+                if len(self.login_log) == 1 and username in self.login_log:
+                    print('No other active users')
+                    client.send('No other active users'.encode())
+                else:
+                    returnMsg = ''
+                    for key in self.login_log:
+                        if key != username:
+                            returnMsg += '\n{} active since {}'.format(
+                                key,
+                                self.login_log[key][0]
+                            )
+                            print('{} active since {}'.format(
+                                key,
+                                self.login_log[key][0]
+                            ))
+                    client.send(returnMsg.encode())
             else:
                 client.sent('Error. Invalid command!'.encode())
 
@@ -229,18 +249,17 @@ class Server:
                 return True
         return False
 
-    def updateUserLog(self, *address):
-        if (address):
-            with open('userlog.txt', 'w+') as logfile:
-                for (idx, name) in enumerate(self.login_log):
-                    logline = '{}; {}; {}; {}; {}\n'.format(
-                        idx + 1,
-                        self.login_log[name].split(',')[0],
-                        name,
-                        address[0],
-                        self.login_log[name].split(',')[1],
-                    )
-                    logfile.write(logline)
+    def updateUserLog(self):
+        with open('userlog.txt', 'w+') as logfile:
+            for (idx, name) in enumerate(self.login_log):
+                logline = '{}; {}; {}; {}; {}\n'.format(
+                    idx + 1,
+                    self.login_log[name][0],
+                    name,
+                    self.login_log[name][1],
+                    self.login_log[name][2],
+                )
+                logfile.write(logline)
 
 if __name__ == '__main__':
     if len(sys.argv) != 4:

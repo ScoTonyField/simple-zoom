@@ -12,7 +12,7 @@ class Client:
         self.sock.connect((host, port))
         print('Connect to server successfully.')
         self.login = False
-        self.status = True
+        # self.status = True
         response_dict = {
             '0': 'Welcome to TOOM!',
             '1': 'Invalid Password. Please try again',
@@ -41,13 +41,8 @@ class Client:
             self.sock.send(cmd.encode())
             sendBackMsg = self.sock.recv(1024)
             print(sendBackMsg.decode())
-
-    def logOut(self):
-        if self.login:
-            self.sock.send('logout'.encode())
-            print('Bye! {}'.format(self.username))
-            self.login = False
-            self.status = False
+            if (sendBackMsg.decode() == 'Bye! {}'.format(self.username)):
+                break
 
 if __name__ == '__main__':
     c = Client()

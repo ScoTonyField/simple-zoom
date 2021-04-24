@@ -53,7 +53,7 @@ class Server:
                 break
         while login:
             afterLoginMsg = client.recv(1024)
-            if afterLoginMsg.decode() == 'logout':
+            if afterLoginMsg.decode() == 'OUT':
                 login = False
                 client.close()
             elif 'MSG ' in afterLoginMsg.decode():
@@ -61,10 +61,12 @@ class Server:
                 # print(afterLoginMsg.decode()[4:])
                 msg = afterLoginMsg.decode()[4:]
                 postTime = time.strftime('%d %b %Y %H:%M:%S')
-                msgId = postTime + '|' + username
-                self.msg_log[msgId] = [msg, 0]
-                self.updateMsgLog()
-                msgIndex = list(self.msg_log).index(msgId) + 1
+                # msgId = postTime + '|' + username
+                # self.msg_log[msgId] = [msg, 0]
+                self.msg_log[postTime] = [username, msg, 0]
+                self.updateMsgLog(username)
+                # msgIndex = list(self.msg_log).index(msgId) + 1
+                msgIndex = list(self.msg_log).index(postTime) + 1
                 client.send('Message #{} posted at {}.'.format(msgIndex, postTime).encode())
                 print('{} posted MSG #{} "{}" at {}'.format(username, msgIndex, msg, postTime))
             elif 'DLT ' in afterLoginMsg.decode():
@@ -73,10 +75,11 @@ class Server:
                 if valid:
                     msgIndex = pattern.findall(afterLoginMsg.decode())[0]
                     givenTime = afterLoginMsg.decode()[afterLoginMsg.decode().index(msgIndex) + len(msgIndex) + 1:]
-                    givenId = givenTime + '|' + username
-                    deleteMsg = self.msg_log[givenId][0]
-                    self.msg_log.pop(givenId)
-                    self.updateMsgLog()
+                    # givenId = givenTime + '|' + username
+                    # deleteMsg = self.msg_log[givenId][0]
+                    deleteMsg = self.msg_log[givenTime][1]
+                    self.msg_log.pop(givenTime)
+                    self.updateMsgLog(username)
                     deleteTime = time.strftime('%d %b %Y %H:%M:%S')
                     client.send('Message {} deleted at {}'.format(
                         msgIndex,
@@ -96,22 +99,22 @@ class Server:
                     givenTime = afterLoginMsg.decode()[
                                 afterLoginMsg.decode().index(msgIndex) + len(msgIndex) + 1:afterLoginMsg.decode().index(
                                     msgIndex) + len(msgIndex) + 1 + 20]
-                    givenId = givenTime + '|' + username
+                    # givenId = givenTime + '|' + username
                     newMsg = afterLoginMsg.decode()[afterLoginMsg.decode().index(msgIndex) + len(msgIndex) + 1 + 21:]
                     # update and remain original order (message number)
                     editTime = time.strftime('%d %b %Y %H:%M:%S')
-                    editId = editTime + '|' + username
+                    # editId = editTime + '|' + username
                     listMsg = list(self.msg_log)
                     # listMsg[listMsg.index(givenId)] = editId
                     # self.msg_log[givenId] = [newMsg, 1]
                     newMsgLog = {}
                     for idx in range(len(self.msg_log)):
-                        if idx == listMsg.index(givenId):
-                            newMsgLog[editId] = [newMsg, 1]
+                        if idx == listMsg.index(givenTime):
+                            newMsgLog[editTime] = [username, newMsg, 1]
                         else:
                             newMsgLog[listMsg[idx]] = self.msg_log[listMsg[idx]]
                     self.msg_log = newMsgLog
-                    self.updateMsgLog()
+                    self.updateMsgLog(username)
                     print('{} edited MSG {} "{}" at {}.'.format(
                         username,
                         msgIndex,
@@ -124,8 +127,14 @@ class Server:
                     ).encode())
                 else:
                     client.send(validMsg.encode())
+            elif 'RDM ' in afterLoginMsg.decode():
+                return
             else:
                 client.sent('Error. Invalid command!'.encode())
+
+    # TODO: check if command line is valid
+    def isCommandValid(self):
+        return
 
     def isValid(self, message, username):
         pattern = re.compile(r'#\d+')
@@ -138,10 +147,12 @@ class Server:
             timeBeginIndex = message.index(pattern.findall(message)[0]) + len(pattern.findall(message)[0]) + 1
             lengthOfTime = 20
             givenTime = message[timeBeginIndex:timeBeginIndex + lengthOfTime]
-            givenId = givenTime + '|' + username
+            # givenId = givenTime + '|' + username
             # TODO: givenTime validation
-            if givenId not in self.msg_log:
-                return [False, 'Wrong timestamp or these message not belong to you']
+            if givenTime not in self.msg_log:
+                return [False, 'Wrong timestamp, please checked']
+            elif givenTime in self.msg_log and self.msg_log[givenTime][0] != username:
+                return [False, 'Message does not belong to you']
             else:
                 return [True, '']
 
@@ -157,15 +168,15 @@ class Server:
             return False
 
 
-    def updateMsgLog(self):
+    def updateMsgLog(self, username):
         with open('messagelog.txt', 'w+') as file:
-            for (idx, msgId) in enumerate(self.msg_log):
+            for (idx, time) in enumerate(self.msg_log):
                 logline = '{}; {}; {}; {}; {}\n'.format(
                     idx + 1,
-                    msgId.split('|')[0],
-                    msgId.split('|')[1],
-                    self.msg_log[msgId][0],
-                    'yes' if self.msg_log[msgId][1] else 'no'
+                    time,
+                    username,
+                    self.msg_log[time][1],
+                    'yes' if self.msg_log[time][2] else 'no'
                 )
                 file.write(logline)
 

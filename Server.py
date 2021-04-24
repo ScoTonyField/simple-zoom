@@ -69,7 +69,7 @@ class Server:
                 print('{} posted MSG #{} "{}" at {}'.format(username, msgIndex, msg, postTime))
             elif 'DLT ' in afterLoginMsg.decode():
                 pattern = re.compile(r'#\d+')
-                valid, validMsg = self.isDLTValid(afterLoginMsg.decode(), username)
+                valid, validMsg = self.isValid(afterLoginMsg.decode(), username)
                 if valid:
                     msgIndex = pattern.findall(afterLoginMsg.decode())[0]
                     givenTime = afterLoginMsg.decode()[afterLoginMsg.decode().index(msgIndex) + len(msgIndex) + 1:]
@@ -88,12 +88,46 @@ class Server:
                         deleteMsg,
                         deleteTime
                     ))
+            elif 'EDT ' in afterLoginMsg.decode():
+                pattern = re.compile(r'#\d+')
+                valid, validMsg = self.isValid(afterLoginMsg.decode(), username)
+                if valid:
+                    msgIndex = pattern.findall(afterLoginMsg.decode())[0]
+                    givenTime = afterLoginMsg.decode()[
+                                afterLoginMsg.decode().index(msgIndex) + len(msgIndex) + 1:afterLoginMsg.decode().index(
+                                    msgIndex) + len(msgIndex) + 1 + 20]
+                    givenId = givenTime + '|' + username
+                    newMsg = afterLoginMsg.decode()[afterLoginMsg.decode().index(msgIndex) + len(msgIndex) + 1 + 21:]
+                    # update and remain original order (message number)
+                    editTime = time.strftime('%d %b %Y %H:%M:%S')
+                    editId = editTime + '|' + username
+                    listMsg = list(self.msg_log)
+                    # listMsg[listMsg.index(givenId)] = editId
+                    # self.msg_log[givenId] = [newMsg, 1]
+                    newMsgLog = {}
+                    for idx in range(len(self.msg_log)):
+                        if idx == listMsg.index(givenId):
+                            newMsgLog[editId] = [newMsg, 1]
+                        else:
+                            newMsgLog[listMsg[idx]] = self.msg_log[listMsg[idx]]
+                    self.msg_log = newMsgLog
+                    self.updateMsgLog()
+                    print('{} edited MSG {} "{}" at {}.'.format(
+                        username,
+                        msgIndex,
+                        newMsg,
+                        editTime
+                    ))
+                    client.send('Message {} edited at {}'.format(
+                        msgIndex,
+                        editTime
+                    ).encode())
                 else:
                     client.send(validMsg.encode())
             else:
                 client.sent('Error. Invalid command!'.encode())
 
-    def isDLTValid(self, message, username):
+    def isValid(self, message, username):
         pattern = re.compile(r'#\d+')
         if not pattern.findall(message):
             return [False, 'Wrong message number, please checked']
@@ -101,7 +135,9 @@ class Server:
         if msgNum > len(self.msg_log):
             return [False, 'Wrong message number, please checked']
         else:
-            givenTime = message[message.index(pattern.findall(message)[0]) + len(pattern.findall(message)[0]) + 1:]
+            timeBeginIndex = message.index(pattern.findall(message)[0]) + len(pattern.findall(message)[0]) + 1
+            lengthOfTime = 20
+            givenTime = message[timeBeginIndex:timeBeginIndex + lengthOfTime]
             givenId = givenTime + '|' + username
             # TODO: givenTime validation
             if givenId not in self.msg_log:

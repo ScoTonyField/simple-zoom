@@ -128,6 +128,31 @@ class Server:
                 else:
                     client.send(validMsg.encode())
             elif 'RDM ' in afterLoginMsg.decode():
+                givenTime = afterLoginMsg.decode()[4:24]
+                # TODO: check givenTime is valid
+                print('{} issued RDM command'.format(username))
+                print('Return messages:')
+                if givenTime > max(self.msg_log) or len(self.msg_log) == 0:
+                    print('No new message')
+                    client.sent('No new message'.encode())
+                else:
+                    returnMsg = ''
+                    for (idx, key) in enumerate(self.msg_log):
+                        if key > givenTime:
+                            returnMsg += '\n#{} {}, {}, edited at {}.'.format(
+                                idx + 1,
+                                self.msg_log[key][0],
+                                self.msg_log[key][1],
+                                key
+                            )
+                            print('#{} {}, {}, edited at {}.'.format(
+                                idx + 1,
+                                self.msg_log[key][0],
+                                self.msg_log[key][1],
+                                key
+                            ))
+                    client.send(returnMsg.encode())
+            elif 'ATU' == afterLoginMsg.decode():
                 return
             else:
                 client.sent('Error. Invalid command!'.encode())

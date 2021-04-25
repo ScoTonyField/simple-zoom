@@ -38,7 +38,7 @@ class Client:
                 print(self.response_dict['1'])
             else:
                 print(self.response_dict['2'])
-                break
+                os._exit(0)
         # activate thread to accecpt udp connection
         thread = threading.Thread(target=self.udpListen)
         thread.start()

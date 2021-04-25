@@ -11,7 +11,6 @@ import re
 
 class Server:
     def __init__(self, host, port, failed_num):
-        self.login = False
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.bind((host, port))
         self.sock.listen()

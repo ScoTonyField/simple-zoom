@@ -1,3 +1,7 @@
+'''
+@author: Zhi Ye (z5314977)
+@version: python3
+'''
 import socket
 import sys
 import time
@@ -64,7 +68,7 @@ class Client:
             else:
                 self.udpSend(cmd)
 
-    
+
     def udpSend(self, cmd):
         cmdList = cmd.split(' ')
         if len(cmdList) != 3:
@@ -84,6 +88,7 @@ class Client:
                 port = int(self.active_user[targetUser][1])
                 # send basic identification data to the target user
                 self.udp.sendto('{} {}'.format(self.username, filename).encode(), (address, port))
+                print('---Uploading data, please wait---')
                 # read file and send to the target user
                 with open(filename, 'rb') as file:
                     while True:
@@ -122,4 +127,7 @@ class Client:
                 file.write(message)
 
 if __name__ == '__main__':
-    c = Client(sys.argv[1], int(sys.argv[2]), int(sys.argv[3]))
+    if len(sys.argv) != 4:
+        print('Lack of parameters, example: python3 Server.py host_num port_num.')
+    else:
+        c = Client(sys.argv[1], int(sys.argv[2]), int(sys.argv[3]))
